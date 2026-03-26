@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Expérience Vidéo 360° - WebXR</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #000;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        /* Overlay d'accueil pour contourner le blocage de l'autoplay */
+        #overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, #1a1a1a 0%, #000 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            color: white;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            letter-spacing: 2px;
+        }
+
+        button {
+            padding: 15px 30px;
+            font-size: 1.2rem;
+            background-color: #00d2ff;
+            color: #000;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: transform 0.2s, background-color 0.2s;
+            font-weight: bold;
+            box-shadow: 0 0 20px rgba(0, 210, 255, 0.4);
+        }
+
+        button:hover {
+            transform: scale(1.05);
+            background-color: #00a8cc;
+        }
+
+        #info {
+            margin-top: 20px;
+            font-size: 0.9rem;
+            opacity: 0.7;
+        }
+    </style>
+
+    <!-- 1. IMPORTATION THREE.JS VIA IMPORTMAP -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@latest/build/three.module.js",
+                "three/examples/jsm/": "https://unpkg.com/three@latest/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+<body>
+
+    <div id="overlay">
+        <h1>EXPÉRIENCE VIDÉO 360°</h1>
+        <p>Prêt pour l'immersion ?</p>
+        <button id="startButton">DÉMARRER L'EXPÉRIENCE 360</button>
+        <div id="info">Optimisé pour Meta Quest 3</div>
+    </div>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { VRButton } from 'three/examples/jsm/webxr/VRButton.js';
+
+        let camera, scene, renderer, video;
+
+        init();
+
+        function init() {
+            // --- SCÈNE ---
+            scene = new THREE.Scene();
+
+            // --- CAMÉRA ---
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 0, 0); // La caméra est au centre de la sphère
+
+            // --- VIDÉO 360 ---
+            video = document.createElement('video');
+            video.crossOrigin = 'anonymous';
+            video.playsInline = true;
+            video.loop = true;
+            
+            // MODIFIEZ LA LIGNE CI-DESSOUS POUR CHANGER LE FICHIER VIDÉO
+            video.src = './video360.mp4'; 
+
+            // Texture vidéo
+            const texture = new THREE.VideoTexture(video);
+            texture.colorSpace = THREE.SRGBColorSpace;
+
+            // Géométrie de la sphère (inversée pour voir l'intérieur)
+            const geometry = new THREE.SphereGeometry(500, 60, 40);
+            const material = new THREE.MeshBasicMaterial({ 
+                map: texture,
+                side: THREE.BackSide // TRÈS IMPORTANT : Affichage intérieur
+            });
+
+            const mesh = new THREE.Mesh(geometry, material);
+            scene.add(mesh);
+
+            // --- RENDERER ---
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            
+            // 2. CONFIGURATION WEBXR
+            renderer.xr.enabled = true; 
+            document.body.appendChild(renderer.domElement);
+
+            // Ajout du bouton VR
+            document.body.appendChild(VRButton.createButton(renderer));
+
+            // --- GESTION DE L'OVERLAY ---
+            const startButton = document.getElementById('startButton');
+            const overlay = document.getElementById('overlay');
+
+            startButton.addEventListener('click', () => {
+                // Démarrage de la vidéo suite à l'interaction utilisateur
+                video.play().then(() => {
+                    overlay.style.display = 'none';
+                }).catch(err => {
+                    console.error("Erreur lors de la lecture vidéo:", err);
+                });
+            });
+
+            // --- BOUCLE D'ANIMATION COMPATIBLE WEBXR ---
+            renderer.setAnimationLoop(render);
+
+            // --- REDIMENSIONNEMENT ---
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function render() {
+            renderer.render(scene, camera);
+        }
+    </script>
+</body>
+</html>
+

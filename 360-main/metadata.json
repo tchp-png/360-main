@@ -1,0 +1,5 @@
+{
+  "name": "360",
+  "description": "Une expérience WebXR pour visionner des vidéos 360° sur Meta Quest 3 utilisant Three.js.",
+  "requestFramePermissions": []
+}
